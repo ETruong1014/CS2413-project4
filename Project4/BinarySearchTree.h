@@ -76,7 +76,7 @@ public:
 	virtual void remove (const DataType& xData, const DataType& yData); //remove a coordinate from the tree
 	virtual void rangeSearch (const DataType& xLow, const DataType& xHigh, const DataType& yLow, const DataType& yHigh); //search for values in a range
 	virtual void insert (const DataType& xData, const DataType& yData, int id); //insert a coordinate into the tree
-	virtual void xRebalance(); //rebalance x-tree
+	virtual BinarySearchTree<DataType>* xRebalance(); //rebalance x-tree
 	virtual void yRebalance(const DataType& xVal); //rebalance y-tree
 };
 template <class DataType>
@@ -221,20 +221,26 @@ template <class DataType>
 BinarySearchTree<DataType>* BinarySearchTree<DataType>::_find (const DataType& data) //finds node in the tree containing the value
 {
 	BinarySearchTree<DataType>* bst = this; //creates a pointer to the root node
+	cout << "Searching for " << data << endl;
 	while (true)
 	{
-		if (bst->isEmpty()) //if the node is empty
+		if (bst->isEmpty()) { //if the node is empty
+			cout << "NULL found" << endl;
 			return bst; //return pointer to the current node
+		}
 		if (*(bst->_root) < data) //if the value in the current node is less than the value to search for
 		{
+			cout << *(bst->_root) << " < " << data << endl;
 			bst = bst->_right; //search right subtree
 		}
 		else if (*(bst->_root) > data) //if the value in the current node is greater than the value to search for
 		{
+			cout << *(bst->_root) << " > " << data << endl;
             bst = bst->_left; //search left subtree
 		}
 		else //value found
 		{
+			cout << *(bst->_root) << " found" << endl;
 			return bst; //return pointer to current node
 		}
 	}
@@ -359,9 +365,9 @@ void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& 
 	
 	BinarySearchTree<DataType>* yBST = xBST->_yTree->_find(yData); //find insertion point for y-value
 	
-	if (xBST->isEmpty()) //if empty node is found
+	if (yBST->isEmpty()) //if empty node is found
 	{
-		yBST->_root = new DataType (xData);
+		yBST->_root = new DataType (yData);
 		yBST->_ID = id;
 		yBST->_left = makeSubtree();
 		yBST->_right = makeSubtree();
@@ -440,19 +446,25 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySe
 }
 // --------------------------------------------------------------
 template <class DataType>
-void BinarySearchTree<DataType>::xRebalance() { //rebalance x-tree
+BinarySearchTree<DataType>* BinarySearchTree<DataType>::xRebalance() { //rebalance x-tree
 	
+	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	if (!isEmpty()) { //check if x-tree is empty
 		BinarySearchTree<DataType>** xTreeArr = new BinarySearchTree<DataType>*[size()]; //array of pointers to x-tree nodes
 		
 		fillInorderArray(xTreeArr, 0); //fill array with pointers to nodes
 		globalRebalance(xTreeArr, 0, size() - 1); //rebalance the x-tree
+		
+		int mid = (size() - 1) / 2; //find mid of array
+		return xTreeArr[mid]; //return new root of tree for reassignment
 	}
+	return this; //x-tree is empty, re-return root node
 }
 // --------------------------------------------------------------
 template <class DataType>
 void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance y-tree
 	
+	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	BinarySearchTree<DataType>* xBST = _find(xVal); //pointer to the n-node
 	if (xBST->isEmpty()) throw BinarySearchTreeNotFound(); //exception thrown if x-node not found
 	BinarySearchTree<DataType>* yBST = xBST->_yTree; //pointer to the y-tree
@@ -460,5 +472,8 @@ void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance 
 	
 	yBST->fillInorderArray(yTreeArr, 0); //fill array with pointers to nodes
 	globalRebalance(yTreeArr, 0, yBST->size() - 1); //rebalance the y-tree
+	
+	int mid = (yBST->size() - 1) / 2; //find mid of array
+	xBST->_yTree = yTreeArr[mid]; //reassign root of y-tree
 }
 #endif
