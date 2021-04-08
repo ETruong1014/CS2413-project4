@@ -50,6 +50,9 @@ protected:
 	virtual void copyTree (BinarySearchTree<DataType>* bst); //copy a tree
 	virtual void _makeNull (); //make a tree node NULL
 	BinarySearchTree<DataType>* _find (const DataType& data); //find a node in the tree containing the value
+	virtual void _remove(); //remove current node from the tree
+	virtual int fillInorderArray(BinarySearchTree<DataType>** arr, int idx); //fills an array with nodes in inorder
+	virtual BinarySearchTree<DataType>* globalRebalance(BinarySearchTree<DataType>** arr, int left, int right); //global rebalance method to rebalance the tree
 public:
 	BinarySearchTree (); //default constructor
 	BinarySearchTree (const DataType& data); //non-default constructor
@@ -73,7 +76,8 @@ public:
 	virtual void remove (const DataType& xData, const DataType& yData); //remove a coordinate from the tree
 	virtual void rangeSearch (const DataType& xLow, const DataType& xHigh, const DataType& yLow, const DataType& yHigh); //search for values in a range
 	virtual void insert (const DataType& xData, const DataType& yData, int id); //insert a coordinate into the tree
-	virtual BinarySearchTree<DataType>* globalRebalance(BinarySearchTree<DataType>* arr, int left, int right); //global rebalance method to rebalance the tree
+	virtual void xRebalance(); //rebalance x-tree
+	virtual void yRebalance(const DataType& xVal); //rebalance y-tree
 };
 template <class DataType>
 ostream& operator<< (ostream& s,  BinarySearchTree<DataType>& X) {
@@ -101,7 +105,7 @@ BinarySearchTree<DataType>::BinarySearchTree (const DataType& data) //non-defaul
 {
 	_subtree = false;
 	_root = new DataType(data);
-	//if (data == NULL) throw BinaryTreeMemory();
+	if (data == NULL) throw BinaryTreeMemory();
 	_left = makeSubtree ();
 	_right = makeSubtree ();
 	_yTree = new BinarySearchTree<DataType>(); //make a default y-tree root
@@ -237,6 +241,79 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::_find (const DataType& d
 }
 // --------------------------------------------------------------
 template <class DataType>
+void BinarySearchTree<DataType>::_remove() { //remove current node from the tree
+	
+	BinarySearchTree<DataType>* bst2;
+	BinarySearchTree<DataType>* bst3;
+	
+	// dispose of the existing data; the pointer will be overwritten
+	    delete _root;
+
+	    // .............................................................
+		if (_left->isEmpty())
+		{
+	        // the left subtree exists, but the pointer will be overwritten,
+	        // so we must dispose of it
+	        delete _left;
+	        bst2 = _right;		// save the pointer to the right subtree
+			copyTree (bst2);	// copy the right subtree;
+	        // this empties tree if right empty
+	        bst2->_makeNull ();		// prepare right subtree for deletion
+	        delete bst2;				// delete right subtree to avoid garbage
+		}
+
+		else if (_right->isEmpty())
+		{
+	        // the right subtree exists, but the pointer will be overwritten,
+	        // so we must dispose of it
+	        delete _right;
+	        bst2 = _left;		// save the pointer to the left subtree
+			copyTree (bst2);	// copy the left subtree
+	        bst2->_makeNull ();		// prepare left subtree for deletion
+	        delete bst2;				// delete left subtree to avoid garbage
+		}
+
+		else		// both subtrees non-empty
+		{
+	        // move to the right
+			bst2 = _right;
+	        // then move down to the left as far as possible
+			while (!bst2->_left->isEmpty()) bst2 = bst2->_left;
+	        // overwrite the data pointer
+			_root = bst2->_root;
+
+	        // bst2's left child is known to be empty and pointer will be overwritten
+	     	delete bst2->_left;
+	        // now bst2's right child is copied into it
+			if (bst2->_right->isEmpty()) //if bst2's right child is empty, simply delete it
+	        {
+		     	delete bst2->_right;
+	            bst2->_makeNull();
+	        }
+			else //if bst2's right child exists
+	        {
+	            bst3 = bst2->_right; //save the pointer to bst2's right child
+	            bst2->copyTree(bst2->_right); //copy bst2's right child into itself
+	            bst3->_makeNull (); //prepare bst2's right subtree for deletion
+	            delete bst3; //delete bst2's right subtree
+	        }
+		}
+}
+// --------------------------------------------------------------
+template <class DataType>
+int BinarySearchTree<DataType>::fillInorderArray(BinarySearchTree<DataType>** arr, int idx) { //fill an array with nodes in inorder
+	if (isEmpty()) {
+		return idx;
+	}
+	
+	idx = _left->fillInorderArray(arr, idx); //traverse left subtree and update idx
+	arr[idx] = this; //insert pointer to current node
+	idx++; //increment idx
+	idx = _right->fillInorderArray(arr, idx); //traverse right subtree and update idx
+	return idx;
+}
+// --------------------------------------------------------------
+template <class DataType>
 int BinarySearchTree<DataType>::find (const DataType& xVal, const DataType& yVal) //find a coordinate in the tree
 {
 	BinarySearchTree<DataType>* xBST = _find (xVal); //pointer to the x-node that may contain the x-value
@@ -252,7 +329,7 @@ int BinarySearchTree<DataType>::find (const DataType& xVal, const DataType& yVal
 	BinarySearchTree<DataType>* yBST = _find (yVal); //pointer to the y-node that may contain the y-value
 	try{
 		if (yBST->isEmpty()) throw BinarySearchTreeNotFound(); //y-node is empty, value not found
-		return yBST->_ID; //returns the identifier of the coordinate
+		return yBST->_ID; //returns identifier of the coordinate
 	}
 	catch(Exception e)
 	{
@@ -265,35 +342,37 @@ template <class DataType>
 void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& yData, int id) //insert a coordinate into the tree
 {
 	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if atttempting to directly access a subtree
-	BinarySearchTree<DataType>* xBST = _find (xData); //find insertion point for x coordinate
+	BinarySearchTree<DataType>* xBST = _find (xData); //find insertion point for x-value
 	
 	if (xBST->isEmpty()) //if empty node is found
 	{
 		xBST->_root = new DataType (xData);
-		xBST->_left = makeSubtree ();
-		xBST->_right = makeSubtree ();
+		xBST->_left = makeSubtree();
+		xBST->_right = makeSubtree();
+		xBST->_yTree = new BinarySearchTree<DataType>(); //make a new y-tree for the inserted x-node
 	}
 	else //same value found
 	{
-        delete xBST->_root;
+		delete xBST->_root;
 		xBST->_root = new DataType (xData);
 	}
 	
-	BinarySearchTree<DataType>* yBST = xBST->_yTree->_find (yData); //find insertion point for y coordinate
-		
-		if (yBST->isEmpty()) //if empty node is found
-		{
-			yBST->_root = new DataType (yData);
-			yBST->_ID = id;
-			yBST->_left = makeSubtree ();
-			yBST->_right = makeSubtree ();
-		}
-		else //same value found
-		{
-	        delete yBST->_root;
-			yBST->_root = new DataType (yData);
-			yBST->_ID = id;
-		}
+	BinarySearchTree<DataType>* yBST = xBST->_yTree->_find(yData); //find insertion point for y-value
+	
+	if (xBST->isEmpty()) //if empty node is found
+	{
+		yBST->_root = new DataType (xData);
+		yBST->_ID = id;
+		yBST->_left = makeSubtree();
+		yBST->_right = makeSubtree();
+	}
+	else //same value found
+	{
+		delete yBST->_root;
+		yBST->_root = new DataType (yData);
+		yBST->_ID = id;
+	}
+	
 }
 // --------------------------------------------------------------
 template <class DataType>
@@ -302,66 +381,17 @@ void BinarySearchTree<DataType>::remove (const DataType& xData, const DataType& 
 	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	BinarySearchTree<DataType>* xBST;
 	BinarySearchTree<DataType>* yBST;
-	BinarySearchTree<DataType>* bst2;
-	BinarySearchTree<DataType>* bst3;
 
 	xBST = _find (xData); //find x-node in the tree
 	if (xBST->isEmpty()) throw BinarySearchTreeNotFound(); //exception thrown if x-node not found
 	yBST = xBST->_yTree->_find (yData); //find y-node in the tree
 	if (yBST->isEmpty()) throw BinarySearchTreeNotFound(); //exception thrown if x-node not found
 
-    // dispose of the existing data; the pointer will be overwritten
-    delete yBST->_root;
-
-    // .............................................................
-	if (yBST->_left->isEmpty())
-	{
-        // the left subtree exists, but the pointer will be overwritten,
-        // so we must dispose of it
-        delete yBST->_left;
-        bst2 = yBST->_right;		// save the pointer to the right subtree
-		yBST->copyTree (bst2);	// copy the right subtree;
-        // this empties tree if right empty
-        bst2->_makeNull ();		// prepare right subtree for deletion
-        delete bst2;				// delete right subtree to avoid garbage
-	}
-
-	else if (yBST->_right->isEmpty())
-	{
-        // the right subtree exists, but the pointer will be overwritten,
-        // so we must dispose of it
-        delete yBST->_right;
-        bst2 = yBST->_left;		// save the pointer to the left subtree
-		yBST->copyTree (bst2);	// copy the left subtree
-        bst2->_makeNull ();		// prepare left subtree for deletion
-        delete bst2;				// delete left subtree to avoid garbage
-	}
-
-	else		// both subtrees non-empty
-	{
-        // move to the right
-		bst2 = yBST->_right;
-        // then move down to the left as far as possible
-		while (!bst2->_left->isEmpty()) bst2 = bst2->_left;
-        // overwrite the data pointer
-		yBST->_root = bst2->_root;
-
-        // bst2's left child is known to be empty and pointer will be overwritten
-     	delete bst2->_left;
-        // now bst2's right child is copied into it
-		if (bst2->_right->isEmpty()) //if bst2's right child is empty, simply delete it
-        {
-	     	delete bst2->_right;
-            bst2->_makeNull();
-        }
-		else //if bst2's right child exists
-        {
-            bst3 = bst2->_right; //save the pointer to bst2's right child
-            bst2->copyTree(bst2->_right); //copy bst2's right child into itself
-            bst3->_makeNull (); //prepare bst2's right subtree for deletion
-            delete bst3; //delete bst2's right subtree
-        }
-	}
+    yBST->_remove(); //remove y-node that was found
+    
+    if (xBST->_yTree->_root == NULL) { //if x-node now has no more y-tree
+    	xBST->_remove(); //remove x-node that was found
+    }
 }
 // --------------------------------------------------------------
 template <class DataType>
@@ -395,18 +425,40 @@ void BinarySearchTree<DataType>::rangeSearch (const DataType& xLow, const DataTy
 }
 // --------------------------------------------------------------
 template <class DataType>
-BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySearchTree<DataType>* arr, int left, int right) { //global rebalance method to balance the tree
+BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySearchTree<DataType>** arr, int left, int right) { //global rebalance method to balance the tree
 	
 	int mid = 0; //mid index of the range
 	BinarySearchTree<DataType>* temp = NULL; //temp storage for the pointer at mid
 	
 	if (left <= right) {
 		mid = (left + right) / 2;
-		temp = &arr[mid]; //store the pointer at mid
+		temp = arr[mid]; //store the pointer at mid
 		(*temp)._left = globalRebalance(arr, left, mid - 1); //rebalance the left subtree
 		(*temp)._right = globalRebalance(arr, mid + 1, right); //rebalance the right subtree
 	}
 	return temp;
 }
-
+// --------------------------------------------------------------
+template <class DataType>
+void BinarySearchTree<DataType>::xRebalance() { //rebalance x-tree
+	
+	if (!isEmpty()) { //check if x-tree is empty
+		BinarySearchTree<DataType>** xTreeArr = new BinarySearchTree<DataType>*[size()]; //array of pointers to x-tree nodes
+		
+		fillInorderArray(xTreeArr, 0); //fill array with pointers to nodes
+		globalRebalance(xTreeArr, 0, size() - 1); //rebalance the x-tree
+	}
+}
+// --------------------------------------------------------------
+template <class DataType>
+void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance y-tree
+	
+	BinarySearchTree<DataType>* xBST = _find(xVal); //pointer to the n-node
+	if (xBST->isEmpty()) throw BinarySearchTreeNotFound(); //exception thrown if x-node not found
+	BinarySearchTree<DataType>* yBST = xBST->_yTree; //pointer to the y-tree
+	BinarySearchTree<DataType>** yTreeArr = new BinarySearchTree<DataType>*[yBST->size()]; //array of pointers to y-tree nodes
+	
+	yBST->fillInorderArray(yTreeArr, 0); //fill array with pointers to nodes
+	globalRebalance(yTreeArr, 0, yBST->size() - 1); //rebalance the y-tree
+}
 #endif
