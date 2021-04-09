@@ -440,7 +440,15 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySe
 		mid = (left + right) / 2;
 		temp = arr[mid]; //store the pointer at mid
 		(*temp)._left = globalRebalance(arr, left, mid - 1); //rebalance the left subtree
+		if ((*temp)._left == NULL) { //make subtree for leaf node
+			(*temp)._left = makeSubtree();
+		}
+		(*temp)._left->_subtree = true; //new left node is a subtree
 		(*temp)._right = globalRebalance(arr, mid + 1, right); //rebalance the right subtree
+		if ((*temp)._right == NULL) { //make subtree for leaf node
+			(*temp)._right = makeSubtree();
+		}
+		(*temp)._right->_subtree = true; //new right node is a subtree
 	}
 	return temp;
 }
@@ -450,13 +458,14 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::xRebalance() { //rebalan
 	
 	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	if (!isEmpty()) { //check if x-tree is empty
+		BinarySearchTree<DataType>* xBST; //pointer to new root
 		BinarySearchTree<DataType>** xTreeArr = new BinarySearchTree<DataType>*[size()]; //array of pointers to x-tree nodes
 		
 		fillInorderArray(xTreeArr, 0); //fill array with pointers to nodes
-		globalRebalance(xTreeArr, 0, size() - 1); //rebalance the x-tree
+		xBST = globalRebalance(xTreeArr, 0, size() - 1); //rebalance the x-tree
+		xBST->_subtree = false; //new root is not a subtree
 		
-		int mid = (size() - 1) / 2; //find mid of array
-		return xTreeArr[mid]; //return new root of tree for reassignment
+		return xBST; //return new root of tree for reassignment
 	}
 	return this; //x-tree is empty, re-return root node
 }
@@ -471,9 +480,7 @@ void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance 
 	BinarySearchTree<DataType>** yTreeArr = new BinarySearchTree<DataType>*[yBST->size()]; //array of pointers to y-tree nodes
 	
 	yBST->fillInorderArray(yTreeArr, 0); //fill array with pointers to nodes
-	globalRebalance(yTreeArr, 0, yBST->size() - 1); //rebalance the y-tree
-	
-	int mid = (yBST->size() - 1) / 2; //find mid of array
-	xBST->_yTree = yTreeArr[mid]; //reassign root of y-tree
+	xBST->_yTree = globalRebalance(yTreeArr, 0, yBST->size() - 1); //rebalance the y-tree
+	xBST->_yTree->_subtree = false; //new root is not a subtree
 }
 #endif
