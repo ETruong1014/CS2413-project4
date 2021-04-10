@@ -51,7 +51,7 @@ protected:
 	virtual void _makeNull (); //make a tree node NULL
 	BinarySearchTree<DataType>* _find (const DataType& data); //find a node in the tree containing the value
 	virtual void _remove(); //remove current node from the tree
-	virtual int fillInorderArray(BinarySearchTree<DataType>** arr, int idx); //fills an array with nodes in inorder
+	virtual int getInorderTraversal(BinarySearchTree<DataType>* node, BinarySearchTree<DataType>** inorderArray, int idx); //fills an array with nodes in inorder
 	virtual BinarySearchTree<DataType>* globalRebalance(BinarySearchTree<DataType>** arr, int left, int right); //global rebalance method to rebalance the tree
 public:
 	BinarySearchTree (); //default constructor
@@ -72,12 +72,13 @@ public:
     // returns the right subtree
 	virtual bool subtree(); //returns true if tree is a subtree
 	virtual void makeEmpty (); //make a tree empty
-	virtual int find (const DataType& xVal, const DataType& yVal); //find a coordinate in the tree
+	virtual void find (const DataType& xVal, const DataType& yVal); //find a coordinate in the tree
 	virtual void remove (const DataType& xData, const DataType& yData); //remove a coordinate from the tree
 	virtual void rangeSearch (const DataType& xLow, const DataType& xHigh, const DataType& yLow, const DataType& yHigh); //search for values in a range
 	virtual void insert (const DataType& xData, const DataType& yData, int id); //insert a coordinate into the tree
-	virtual BinarySearchTree<DataType>* xRebalance(); //rebalance x-tree
 	virtual void yRebalance(const DataType& xVal); //rebalance y-tree
+	virtual void printInorder(); //print nodes in inorder
+	virtual void printPreorder(); //print nodes in preorder
 };
 template <class DataType>
 ostream& operator<< (ostream& s,  BinarySearchTree<DataType>& X) {
@@ -221,26 +222,21 @@ template <class DataType>
 BinarySearchTree<DataType>* BinarySearchTree<DataType>::_find (const DataType& data) //finds node in the tree containing the value
 {
 	BinarySearchTree<DataType>* bst = this; //creates a pointer to the root node
-	cout << "Searching for " << data << endl;
 	while (true)
 	{
 		if (bst->isEmpty()) { //if the node is empty
-			cout << "NULL found" << endl;
 			return bst; //return pointer to the current node
 		}
 		if (*(bst->_root) < data) //if the value in the current node is less than the value to search for
 		{
-			cout << *(bst->_root) << " < " << data << endl;
 			bst = bst->_right; //search right subtree
 		}
 		else if (*(bst->_root) > data) //if the value in the current node is greater than the value to search for
 		{
-			cout << *(bst->_root) << " > " << data << endl;
             bst = bst->_left; //search left subtree
 		}
 		else //value found
 		{
-			cout << *(bst->_root) << " found" << endl;
 			return bst; //return pointer to current node
 		}
 	}
@@ -307,40 +303,51 @@ void BinarySearchTree<DataType>::_remove() { //remove current node from the tree
 }
 // --------------------------------------------------------------
 template <class DataType>
-int BinarySearchTree<DataType>::fillInorderArray(BinarySearchTree<DataType>** arr, int idx) { //fill an array with nodes in inorder
-	if (isEmpty()) {
+int BinarySearchTree<DataType>::getInorderTraversal(BinarySearchTree<DataType>* node, BinarySearchTree<DataType>** inorderArray, int idx) { //fill an array with nodes in inorder
+	try {
+		if (node->isEmpty()) throw BinarySearchTreeNotFound(); //check if tree exists
+	}
+	catch (BinarySearchTreeNotFound e) {
+		cout << "No tree for inorder traversal" << endl;
 		return idx;
 	}
 	
-	idx = _left->fillInorderArray(arr, idx); //traverse left subtree and update idx
-	arr[idx] = this; //insert pointer to current node
-	idx++; //increment idx
-	idx = _right->fillInorderArray(arr, idx); //traverse right subtree and update idx
-	return idx;
+	if (!this->isEmpty()) {
+		if (node->left()->_root != NULL) { //if left subtree is not empty
+			idx = node->left()->getInorderTraversal(node->left(), inorderArray, idx); //traverse left subtree
+		}
+		
+		inorderArray[idx++] = node; //add node to array and increment idx
+		
+		if (node->right()->_root != NULL) { //if right subtree is not empty
+			idx = node->right()->getInorderTraversal(node->right(), inorderArray, idx); //traverse right subtree
+		}
+	}
+	return idx; //returns index to update in previous calls
 }
 // --------------------------------------------------------------
 template <class DataType>
-int BinarySearchTree<DataType>::find (const DataType& xVal, const DataType& yVal) //find a coordinate in the tree
+void BinarySearchTree<DataType>::find (const DataType& xVal, const DataType& yVal) //find a coordinate in the tree
 {
 	BinarySearchTree<DataType>* xBST = _find (xVal); //pointer to the x-node that may contain the x-value
 	try{
 		if (xBST->isEmpty()) throw BinarySearchTreeNotFound(); //x-node is empty, value not found
 	}
-	catch(Exception e)
+	catch(BinarySearchTreeNotFound e)
 	{
-		cout<<"\nSorry!!! Element is not found in the tree"<<endl;
-		return 0;
+		cout<<"\nSorry!!! Coordinate is not found in the X tree"<<endl;
+		return;
 	}
 	
-	BinarySearchTree<DataType>* yBST = _find (yVal); //pointer to the y-node that may contain the y-value
+	BinarySearchTree<DataType>* yBST = xBST->_yTree->_find (yVal); //pointer to the y-node that may contain the y-value
 	try{
 		if (yBST->isEmpty()) throw BinarySearchTreeNotFound(); //y-node is empty, value not found
-		return yBST->_ID; //returns identifier of the coordinate
+		cout << "\nThe coordinates " << xBST->root() << ", " << yBST->root() << " is found in the tree with ID value " << yBST->_ID << endl; //print out coordinate and identifier
 	}
-	catch(Exception e)
+	catch(BinarySearchTreeNotFound e)
 	{
-		cout<<"\nSorry!!! Element is not found in the tree"<<endl;
-		return 0;
+		cout<<"\nSorry!!! Coordinate is not found in the Y tree"<<endl;
+		return;
 	}
 }
 // --------------------------------------------------------------
@@ -410,7 +417,9 @@ void BinarySearchTree<DataType>::rangeSearch (const DataType& xLow, const DataTy
 		    _left->rangeSearch(xLow, xHigh, yLow, yHigh); //search in left x-subtree as well
 		    if (*_root <= xHigh) //if x-value is also less than or equal to the x-high
 			{
+		    	cout << root() << " :"; //print x-value
 				_yTree->rangeSearch(xLow, xHigh, yLow, yHigh); //start range search for y-tree
+				cout << " " << endl;
 			}
 		}
 		if (*_root <= xHigh) //if x-value is still less than or equal to the x-high
@@ -422,7 +431,7 @@ void BinarySearchTree<DataType>::rangeSearch (const DataType& xLow, const DataTy
 			_left->rangeSearch(xLow, xHigh, yLow, yHigh); //search in left y-subtree as well
 			if (*_root <= yHigh) //if y-value is also less than or equal to the y-high
 			{
-				cout << _ID << " "; //print out the identifier
+				cout << " " << root() << " "; //print y-value
 			}
 		}
 		if (*_root <= yHigh) //if y-value is still less than or equal to the y-high
@@ -454,23 +463,6 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySe
 }
 // --------------------------------------------------------------
 template <class DataType>
-BinarySearchTree<DataType>* BinarySearchTree<DataType>::xRebalance() { //rebalance x-tree
-	
-	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
-	if (!isEmpty()) { //check if x-tree is empty
-		BinarySearchTree<DataType>* xBST; //pointer to new root
-		BinarySearchTree<DataType>** xTreeArr = new BinarySearchTree<DataType>*[size()]; //array of pointers to x-tree nodes
-		
-		fillInorderArray(xTreeArr, 0); //fill array with pointers to nodes
-		xBST = globalRebalance(xTreeArr, 0, size() - 1); //rebalance the x-tree
-		xBST->_subtree = false; //new root is not a subtree
-		
-		return xBST; //return new root of tree for reassignment
-	}
-	return this; //x-tree is empty, re-return root node
-}
-// --------------------------------------------------------------
-template <class DataType>
 void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance y-tree
 	
 	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
@@ -479,8 +471,40 @@ void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance 
 	BinarySearchTree<DataType>* yBST = xBST->_yTree; //pointer to the y-tree
 	BinarySearchTree<DataType>** yTreeArr = new BinarySearchTree<DataType>*[yBST->size()]; //array of pointers to y-tree nodes
 	
-	yBST->fillInorderArray(yTreeArr, 0); //fill array with pointers to nodes
+	getInorderTraversal(yBST, yTreeArr, 0); //fill array with pointers to nodes
 	xBST->_yTree = globalRebalance(yTreeArr, 0, yBST->size() - 1); //rebalance the y-tree
 	xBST->_yTree->_subtree = false; //new root is not a subtree
+}
+// --------------------------------------------------------------
+template <class DataType>
+void BinarySearchTree<DataType>::printInorder() { //print nodes in inorder
+	if (!isEmpty()) {
+		_left->printInorder(); //traverse and print left subtree
+		if (_ID == 0 && _yTree != NULL) { //output for x-node
+			cout << root() << ": " << endl; //print x-value
+			_yTree->printInorder(); //traverse y-tree of current x-node
+			cout << endl;
+		}
+		if (_ID != 0 && _yTree == NULL) { //output for y-node
+			cout << " " << root() << "(" << _ID << ") "; //print y-value and its identifier
+		}
+		_right->printInorder(); //traverse and print right subtree
+	}
+}
+// --------------------------------------------------------------
+template <class DataType>
+void BinarySearchTree<DataType>::printPreorder() { //print nodes in preorder
+	if (!isEmpty()) {
+		if (_ID == 0 && _yTree != NULL) { //output for x-node
+			cout << root() << ": " << endl; //print x-value
+			_yTree->printPreorder(); //traverse y-tree of current x-node
+			cout << endl;
+		}
+		if (_ID != 0 && _yTree == NULL) { //output for y-node
+			cout << " " << root() << "(" << _ID << ") "; //print y-value and its identifier
+		}
+		_left->printPreorder(); //traverse and print left subtree
+		_right->printPreorder(); //traverse and print right subtree
+	}
 }
 #endif

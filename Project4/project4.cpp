@@ -21,7 +21,6 @@ int main()
 
 	while (!cin.eof()) {
 		cin >> operation; //read operation
-		cout << operation << endl;
 		switch(operation) {
 		case 'I': //insert a coordinate
 			cin >> val1 >> val2 >> val3;
@@ -31,9 +30,11 @@ int main()
 			catch (BinarySearchTreeChangedSubtree e){
 				cout << "Cannot directly access subtree" << endl;
 			}
+			cout << val1 << " " << val2 << " " << val3 << endl; //print out values inserted
 			break;
 		case 'R': //remove a coordinate
 			cin >> val1 >> val2;
+			cout << "Remove: " << val1 << " " << val2 << endl; //print out coordinate to remove
 			try {
 				(*bst).remove(val1, val2);
 			}
@@ -41,24 +42,24 @@ int main()
 				cout << "Cannot directly access subtree" << endl;
 			}
 			catch (BinarySearchTreeNotFound e) {
-				cout << "Point not found" << endl;
+				cout << "The element you are trying to remove is not in the tree " << endl;
 			}
 			break;
 		case 'F': //find a coordinate
 			cin >> val1 >> val2;
-			try {
-				cout << (*bst).find(val1, val2) << endl; //print out identifier of coordinate
-			}
-			catch (BinarySearchTreeNotFound e) {
-				cout << "Point not found" << endl;
-			}
+			cout << "Find: " << val1 << " " << val2 << endl;
+			(*bst).find(val1, val2); //print out coordinate and identifier
 			break;
 		case 'S': //search for values in a range
 			cin >> val1 >> val2 >> val3 >> val4;
+			cout << "Range search " << endl;
+			cout << val1 << " " << val2 << " " << val3 << " " << val4 << endl; //print out range
 			(*bst).rangeSearch(val1, val2, val3, val4);
 			break;
 		case 'Y': //balance a y-tree
 			cin >> val1;
+			cout << "Y tree balance" << endl;
+			cout << val1 << endl;
 			try {
 				(*bst).yRebalance(val1); //rebalance the y-tree at given x-value
 			}
@@ -66,19 +67,16 @@ int main()
 				cout << "Cannot directly access subtree" << endl;
 			}
 			catch (BinarySearchTreeNotFound e) {
-				cout << "x value not found" << endl;
-			}
-			break;
-		case 'X': //balance the x-tree
-			try {
-				bst = (*bst).xRebalance(); //rebalance the x-tree and reassign root node
-			}
-			catch (BinarySearchTreeChangedSubtree e){
-				cout << "Cannot directly access subtree" << endl;
+				cout << "X value not found" << endl;
 			}
 			break;
 		case 'P': //print the x-tree and each x-node's y-tree
-			cout << "Test" << endl;
+			cout << "Print" << endl;
+			cout << "INORDER TRAVERSAL: " << endl;
+			(*bst).printInorder(); //print inorder traversal
+			cout << "PREORDER TRAVERSAL: " << endl;
+			(*bst).printPreorder(); //print preorder traversal
+			cout << endl;
 			break;
 		}
 	}
