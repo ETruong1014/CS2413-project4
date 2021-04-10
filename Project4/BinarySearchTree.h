@@ -41,7 +41,7 @@ class BinarySearchTree
 	friend ostream& operator<< <DataType> (ostream& s,  BinarySearchTree<DataType>& X);
 protected:
 	DataType* _root; //root of the tree
-	int _ID; //ID number of a y-node, 0 if it is an x-node
+	int _ID; //ID number of a y-node, -1 if it is an x-node
 	BinarySearchTree<DataType>* _left; //left node of the tree
 	BinarySearchTree<DataType>* _right; //right node of the tree
 	BinarySearchTree<DataType>* _yTree; //pointer to the root of the x-node's y-tree
@@ -94,7 +94,7 @@ template <class DataType>
 BinarySearchTree<DataType>::BinarySearchTree () //default constructor
 {
 	_root = NULL;
-	_ID = 0;
+	_ID = -1;
 	_left = NULL;
 	_right = NULL;
 	_yTree = NULL;
@@ -107,6 +107,7 @@ BinarySearchTree<DataType>::BinarySearchTree (const DataType& data) //non-defaul
 	_subtree = false;
 	_root = new DataType(data);
 	if (data == NULL) throw BinaryTreeMemory();
+	_ID = -1;
 	_left = makeSubtree ();
 	_right = makeSubtree ();
 	_yTree = new BinarySearchTree<DataType>(); //make a default y-tree root
@@ -134,6 +135,7 @@ BinarySearchTree<DataType>::~BinarySearchTree () //destructor
     _right = NULL;
     if (_yTree != NULL)
     	delete _yTree;
+    _yTree = NULL;
     _ID = 0;
 }
 // --------------------------------------------------------------
@@ -411,7 +413,7 @@ template <class DataType>
 void BinarySearchTree<DataType>::rangeSearch (const DataType& xLow, const DataType& xHigh, const DataType& yLow, const DataType& yHigh) //search for values in a range
 {
 	if (isEmpty()) return;
-	if (_ID == 0 && _yTree != NULL) { //if current node is an x-node
+	if (_ID == -1 && _yTree != NULL) { //if current node is an x-node
 		if (*_root >= xLow) //if x-value is still higher than or equal to the x-low
 		{
 		    _left->rangeSearch(xLow, xHigh, yLow, yHigh); //search in left x-subtree as well
@@ -425,7 +427,7 @@ void BinarySearchTree<DataType>::rangeSearch (const DataType& xLow, const DataTy
 		if (*_root <= xHigh) //if x-value is still less than or equal to the x-high
 		    _right->rangeSearch(xLow, xHigh, yLow, yHigh); //search in the right x-subtree as well
 	}
-	else if (_ID != 0 && _yTree == NULL) { //if current node is a y-node
+	else if (_ID != -1 && _yTree == NULL) { //if current node is a y-node
 		if (*_root >= yLow) //if y-value is still higher than or equal to the y-low
 		{
 			_left->rangeSearch(xLow, xHigh, yLow, yHigh); //search in left y-subtree as well
@@ -480,12 +482,12 @@ template <class DataType>
 void BinarySearchTree<DataType>::printInorder() { //print nodes in inorder
 	if (!isEmpty()) {
 		_left->printInorder(); //traverse and print left subtree
-		if (_ID == 0 && _yTree != NULL) { //output for x-node
+		if (_ID == -1 && _yTree != NULL) { //output for x-node
 			cout << root() << ": " << endl; //print x-value
 			_yTree->printInorder(); //traverse y-tree of current x-node
 			cout << endl;
 		}
-		if (_ID != 0 && _yTree == NULL) { //output for y-node
+		if (_ID != -1 && _yTree == NULL) { //output for y-node
 			cout << " " << root() << "(" << _ID << ") "; //print y-value and its identifier
 		}
 		_right->printInorder(); //traverse and print right subtree
@@ -495,12 +497,12 @@ void BinarySearchTree<DataType>::printInorder() { //print nodes in inorder
 template <class DataType>
 void BinarySearchTree<DataType>::printPreorder() { //print nodes in preorder
 	if (!isEmpty()) {
-		if (_ID == 0 && _yTree != NULL) { //output for x-node
+		if (_ID == -1 && _yTree != NULL) { //output for x-node
 			cout << root() << ": " << endl; //print x-value
 			_yTree->printPreorder(); //traverse y-tree of current x-node
 			cout << endl;
 		}
-		if (_ID != 0 && _yTree == NULL) { //output for y-node
+		if (_ID != -1 && _yTree == NULL) { //output for y-node
 			cout << " " << root() << "(" << _ID << ") "; //print y-value and its identifier
 		}
 		_left->printPreorder(); //traverse and print left subtree
