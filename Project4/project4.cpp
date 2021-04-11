@@ -17,29 +17,20 @@ int main()
 	int val2;
 	int val3;
 	int val4;
-	BinarySearchTree<int>* bst = new BinarySearchTree<int>();
+	BinarySearchTree<int>* bst = new BinarySearchTree<int>(); //pointer to root of x-tree
 
-	while (!cin.eof()) {
-		cin >> operation; //read operation
+	while (cin >> operation) { //read until end of file, when operation assignment fails
 		switch(operation) {
 		case 'I': //insert a coordinate
 			cin >> val1 >> val2 >> val3;
-			try {
-				(*bst).insert(val1, val2, val3);
-			}
-			catch (BinarySearchTreeChangedSubtree e){
-				cout << "Cannot directly access subtree" << endl;
-			}
+			(*bst).insert(val1, val2, val3); //insertion
 			cout << val1 << " " << val2 << " " << val3 << endl; //print out values inserted
 			break;
 		case 'R': //remove a coordinate
 			cin >> val1 >> val2;
 			cout << "Remove: " << val1 << " " << val2 << endl; //print out coordinate to remove
 			try {
-				(*bst).remove(val1, val2);
-			}
-			catch (BinarySearchTreeChangedSubtree e){
-				cout << "Cannot directly access subtree" << endl;
+				(*bst).remove(val1, val2); //removal
 			}
 			catch (BinarySearchTreeNotFound e) {
 				cout << "The element you are trying to remove is not in the tree " << endl;
@@ -54,7 +45,7 @@ int main()
 			cin >> val1 >> val2 >> val3 >> val4;
 			cout << "Range search " << endl;
 			cout << val1 << " " << val2 << " " << val3 << " " << val4 << endl; //print out range
-			(*bst).rangeSearch(val1, val2, val3, val4);
+			(*bst).rangeSearch(val1, val2, val3, val4); //print values in the range
 			break;
 		case 'Y': //balance a y-tree
 			cin >> val1;
@@ -62,9 +53,6 @@ int main()
 			cout << val1 << endl;
 			try {
 				(*bst).yRebalance(val1); //rebalance the y-tree at given x-value
-			}
-			catch (BinarySearchTreeChangedSubtree e){
-				cout << "Cannot directly access subtree" << endl;
 			}
 			catch (BinarySearchTreeNotFound e) {
 				cout << "X value not found" << endl;

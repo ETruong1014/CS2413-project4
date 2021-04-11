@@ -84,7 +84,7 @@ template <class DataType>
 ostream& operator<< (ostream& s,  BinarySearchTree<DataType>& X) {
 
 	if (!X.isEmpty()) { //if the tree is not empty
-		s << *(X.left ()) << " " << X.root () << " " << *(X.right()); //prints contents of the tree
+		s << *(X.left ()) << " " << X.root () << " " << *(X.right()); //prints contents of the tree in inorder
 	}
 	return s;
 }
@@ -94,10 +94,10 @@ template <class DataType>
 BinarySearchTree<DataType>::BinarySearchTree () //default constructor
 {
 	_root = NULL;
-	_ID = -1;
+	_ID = -1; //assume an x-node was created, will stay as -1 if that is the case
 	_left = NULL;
 	_right = NULL;
-	_yTree = NULL;
+	_yTree = NULL; //will create a y-tree upon insertion of x-node, will stay as NULL for y-node
 	_subtree = false;
 }
 // --------------------------------------------------------------
@@ -107,7 +107,7 @@ BinarySearchTree<DataType>::BinarySearchTree (const DataType& data) //non-defaul
 	_subtree = false;
 	_root = new DataType(data);
 	if (data == NULL) throw BinaryTreeMemory();
-	_ID = -1;
+	_ID = -1; //assume an x-node was created, will stay as -1 is that is the case
 	_left = makeSubtree ();
 	_right = makeSubtree ();
 	_yTree = new BinarySearchTree<DataType>(); //make a default y-tree root
@@ -136,7 +136,7 @@ BinarySearchTree<DataType>::~BinarySearchTree () //destructor
     if (_yTree != NULL)
     	delete _yTree;
     _yTree = NULL;
-    _ID = 0;
+    _ID = 0; //assuming ID will be 0 for non-existant nodes
 }
 // --------------------------------------------------------------
 template <class DataType>
@@ -180,11 +180,12 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::right (){ return _right;
 // --------------------------------------------------------------
 template <class DataType>
 bool BinarySearchTree<DataType>::subtree() { return _subtree; }
+//returns true if tree is a subtree
 // --------------------------------------------------------------
 template <class DataType>
 void BinarySearchTree<DataType>::makeEmpty ()
 {
-	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
+	//if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	if (_root != NULL)
    		delete _root;
     _root = NULL;
@@ -197,7 +198,7 @@ void BinarySearchTree<DataType>::makeEmpty ()
     if (_yTree != NULL)
     	delete _yTree;
     _yTree = NULL;
-    _ID = 0;
+    _ID = 0; //assuming ID will be 0 for non-existant nodes
 }
 // --------------------------------------------------------------
 template <class DataType>
@@ -356,7 +357,7 @@ void BinarySearchTree<DataType>::find (const DataType& xVal, const DataType& yVa
 template <class DataType>
 void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& yData, int id) //insert a coordinate into the tree
 {
-	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if atttempting to directly access a subtree
+	//if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if atttempting to directly access a subtree
 	BinarySearchTree<DataType>* xBST = _find (xData); //find insertion point for x-value
 	
 	if (xBST->isEmpty()) //if empty node is found
@@ -366,7 +367,7 @@ void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& 
 		xBST->_right = makeSubtree();
 		xBST->_yTree = new BinarySearchTree<DataType>(); //make a new y-tree for the inserted x-node
 	}
-	else //same value found
+	else //value found, overwrite it
 	{
 		delete xBST->_root;
 		xBST->_root = new DataType (xData);
@@ -381,7 +382,7 @@ void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& 
 		yBST->_left = makeSubtree();
 		yBST->_right = makeSubtree();
 	}
-	else //same value found
+	else //value found, overwrite it
 	{
 		delete yBST->_root;
 		yBST->_root = new DataType (yData);
@@ -393,7 +394,7 @@ void BinarySearchTree<DataType>::insert (const DataType& xData, const DataType& 
 template <class DataType>
 void BinarySearchTree<DataType>::remove (const DataType& xData, const DataType& yData) //remove a coordinate from the tree
 {
-	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
+	//if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	BinarySearchTree<DataType>* xBST;
 	BinarySearchTree<DataType>* yBST;
 
@@ -467,7 +468,7 @@ BinarySearchTree<DataType>* BinarySearchTree<DataType>::globalRebalance(BinarySe
 template <class DataType>
 void BinarySearchTree<DataType>::yRebalance(const DataType& xVal) { //rebalance y-tree
 	
-	if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
+	//if (_subtree) throw BinarySearchTreeChangedSubtree(); //exception thrown if attempting to directly access a subtree
 	BinarySearchTree<DataType>* xBST = _find(xVal); //pointer to the n-node
 	if (xBST->isEmpty()) throw BinarySearchTreeNotFound(); //exception thrown if x-node not found
 	BinarySearchTree<DataType>* yBST = xBST->_yTree; //pointer to the y-tree
